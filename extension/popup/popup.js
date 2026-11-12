@@ -43,7 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const optFixDates = document.getElementById("optFixDates");
   const dateFormatSettings = document.getElementById("dateFormatSettings");
   const targetDateFormat = document.getElementById("targetDateFormat");
-  const dateAmbiguityMode = document.getElementById("dateAmbiguityMode");
   const optConvertIds = document.getElementById("optConvertIds");
   const optDropDupes = document.getElementById("optDropDupes");
   const cleanCsvBtn = document.getElementById("cleanCsvBtn");
@@ -426,7 +425,6 @@ document.addEventListener("DOMContentLoaded", () => {
       trim_whitespace: optTrimSpaces.checked,
       standardize_dates: optFixDates.checked,
       target_date_format: targetDateFormat ? targetDateFormat.value : "YYYY-MM-DD",
-      day_first: dateAmbiguityMode ? dateAmbiguityMode.value === "day_first" : true,
       convert_sf_ids: optConvertIds.checked,
       drop_duplicates: optDropDupes.checked,
     };

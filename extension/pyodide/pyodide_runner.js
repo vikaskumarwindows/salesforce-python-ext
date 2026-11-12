@@ -102,10 +102,9 @@ def py_clean_csv(csv_text, options=None):
                 df[col] = df[col].apply(lambda x: convert_single_sf_id(str(x)) if pd.notnull(x) and len(str(x).strip()) == 15 else x)
                 audit["sf_ids_converted_cols"].append(col)
 
-    # 3. Standardize Date columns & Resolve Ambiguous Dates (e.g. 02/11/2026)
+    # 3. Standardize Date columns to user-selected format
     if fix_dates:
         target_fmt = options.get("target_date_format", "YYYY-MM-DD")
-        day_first_opt = bool(options.get("day_first", True))
 
         fmt_code_map = {
             "YYYY-MM-DD": "%Y-%m-%d",
@@ -118,6 +117,18 @@ def py_clean_csv(csv_text, options=None):
             "YYYY-MM-DD HH:MM:SS": "%Y-%m-%d %H:%M:%S",
         }
         fmt_code = fmt_code_map.get(target_fmt, "%Y-%m-%d")
+
+        def detect_column_dayfirst(series):
+            sample = series.dropna().astype(str).str.strip().tolist()[:50]
+            for s in sample:
+                m = re.match(r'^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{2,4})', s)
+                if m:
+                    n1, n2 = int(m.group(1)), int(m.group(2))
+                    if n1 > 12 and n2 <= 12:
+                        return True
+                    if n2 > 12 and n1 <= 12:
+                        return False
+            return False
 
         def is_date_column(series, col_name):
             col_lower = str(col_name).lower()
@@ -137,16 +148,19 @@ def py_clean_csv(csv_text, options=None):
                         if re.match(r'^\\d{4}[-/]', s):
                             pd.to_datetime(s, format='ISO8601')
                         else:
-                            pd.to_datetime(s, dayfirst=day_first_opt)
+                            try:
+                                pd.to_datetime(s)
+                            except Exception:
+                                pd.to_datetime(s, dayfirst=True)
                         date_matches += 1
                     except Exception:
                         pass
             return date_matches >= max(2, int(len(sample) * 0.4))
 
-        def format_date_cell(val):
+        def format_date_cell(val, day_first):
             if pd.isnull(val):
                 return val
-            s = str(val).strip()
+            s = str(val).strip().strip('"\'')
             if not s or s.lower() in ['nan', 'none', 'null', 'na', '']:
                 return val
             if re.match(r'^\\d+(\\.\\d+)?$', s):
@@ -155,7 +169,10 @@ def py_clean_csv(csv_text, options=None):
                 if re.match(r'^\\d{4}[-/]', s):
                     dt = pd.to_datetime(s, format='ISO8601')
                 else:
-                    dt = pd.to_datetime(s, dayfirst=day_first_opt)
+                    try:
+                        dt = pd.to_datetime(s, dayfirst=day_first)
+                    except Exception:
+                        dt = pd.to_datetime(s)
                 return dt.strftime(fmt_code)
             except Exception:
                 return val
@@ -163,8 +180,9 @@ def py_clean_csv(csv_text, options=None):
         for col in df.columns:
             if is_date_column(df[col], col):
                 try:
-                    df[col] = df[col].apply(format_date_cell)
-                    audit["dates_standardized_cols"].append(f"{col} ({target_fmt})")
+                    col_df = detect_column_dayfirst(df[col])
+                    df[col] = df[col].apply(lambda v: format_date_cell(v, col_df))
+                    audit["dates_standardized_cols"].append(f"{col} -> {target_fmt}")
                 except Exception:
                     pass
 

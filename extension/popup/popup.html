@@ -124,11 +124,11 @@
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="optFixDates" checked>
-            <span>Standardize & resolve dates</span>
+            <span>Standardize dates to selected format</span>
           </label>
           <div id="dateFormatSettings" class="date-format-settings">
             <div class="settings-row">
-              <label for="targetDateFormat" class="settings-label">Target Format:</label>
+              <label for="targetDateFormat" class="settings-label">Target Date Format:</label>
               <select id="targetDateFormat" class="settings-select">
                 <option value="YYYY-MM-DD" selected>YYYY-MM-DD (Salesforce / ISO)</option>
                 <option value="DD/MM/YYYY">DD/MM/YYYY (UK / EU / India)</option>
@@ -138,13 +138,6 @@
                 <option value="MM-DD-YYYY">MM-DD-YYYY (US Dash)</option>
                 <option value="DD.MM.YYYY">DD.MM.YYYY (European Dot)</option>
                 <option value="YYYY-MM-DD HH:MM:SS">YYYY-MM-DD HH:MM:SS (DateTime)</option>
-              </select>
-            </div>
-            <div class="settings-row">
-              <label for="dateAmbiguityMode" class="settings-label">Resolve 02/11/2026 as:</label>
-              <select id="dateAmbiguityMode" class="settings-select">
-                <option value="day_first" selected>Day First (02 Nov 2026)</option>
-                <option value="month_first">Month First (11 Feb 2026)</option>
               </select>
             </div>
           </div>
