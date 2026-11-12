@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salesforce & Google Sheet Studio (Pyodide Wasm)</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Loading Spinner Overlay (Active until Pyodide Wasm is ready) -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner-card">
+      <div class="spinner"></div>
+      <h3 id="spinnerTextTitle">Starting Python Wasm...</h3>
+      <p id="spinnerSubtext" class="spinner-subtext">Initializing CPython 3.12 in browser memory</p>
+      <div class="spinner-progress-bar">
+        <div id="spinnerProgressTrack" class="spinner-progress-fill"></div>
+      </div>
+      <span class="spinner-privacy-tag">🔒 Zero Server • 100% Client-Side Privacy</span>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <header class="header">
+      <div class="title-bar">
+        <span class="icon">⚡</span>
+        <h2>Salesforce & Sheet Studio</h2>
+      </div>
+      <div class="status-indicator" id="engineStatus">
+        <span class="dot loading"></span>
+        <span class="status-text">Loading Python...</span>
+      </div>
+    </header>
+
+    <div class="wasm-badge">
+      🔒 <strong>100% In-Browser Privacy</strong>: Python, NumPy & Pandas run in your browser. Google Sheets & CSV data never leave your computer.
+    </div>
+
+    <!-- Feature Choice Selector -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="sfIdTab">🔑 15 ➔ 18 ID Fixer</button>
+      <button class="tab-btn" data-tab="sheetCleanTab">🧹 Sheet & CSV Cleanser</button>
+      <button class="tab-btn" data-tab="statsTab">📊 Stats & Scrape</button>
+    </nav>
+
+    <main class="tab-content">
+      <!-- 1. Salesforce 15-to-18 ID Converter -->
+      <section id="sfIdTab" class="tab-pane active">
+        <p class="tool-desc">
+          Salesforce reports export <strong>15-character case-sensitive IDs</strong> that break in Excel/Sheet lookups. Convert them to <strong>18-character case-safe IDs</strong>.
+        </p>
+
+        <label for="sfSingleId"><strong>Single ID Conversion:</strong></label>
+        <div class="input-action-row">
+          <input type="text" id="sfSingleId" placeholder="e.g. 001D000000I6UIm" maxlength="18">
+          <button id="convertSingleBtn" class="action-btn">Convert</button>
+        </div>
+
+        <div id="singleResultBox" class="result-highlight hidden">
+          <span class="result-label">18-Char Safe ID:</span>
+          <code id="singleResultText"></code>
+          <button id="copySingleBtn" class="mini-btn">Copy</button>
+        </div>
+
+        <hr class="divider">
+
+        <label for="sfBulkIds"><strong>Bulk ID Conversion:</strong></label>
+        <p class="hint">Paste one Salesforce ID per line or comma-separated:</p>
+        <textarea id="sfBulkIds" rows="3" placeholder="001D000000I6UIm&#10;003D000000QBprI&#10;0065000000W12AB"></textarea>
+        <button id="convertBulkBtn" class="primary-btn">Convert All IDs</button>
+
+        <div id="bulkResultBox" class="results-box hidden">
+          <div class="result-header">
+            <h4>Converted IDs (<span id="bulkCount">0</span>)</h4>
+            <button id="copyBulkBtn" class="mini-btn">Copy All</button>
+          </div>
+          <pre id="bulkResultText" class="code-preview"></pre>
+        </div>
+      </section>
+
+      <!-- 2. Smart Google Sheet & CSV Cleanser -->
+      <section id="sheetCleanTab" class="tab-pane">
+        <p class="tool-desc">
+          Audit and correct open <strong>Google Sheets</strong> or raw <strong>CSV files</strong> for Salesforce Data Loader without Excel errors.
+        </p>
+
+        <!-- Google Sheet Live Detection Box -->
+        <div id="gsheetDetectBox" class="gsheet-box">
+          <div class="gsheet-header">
+            <span class="gsheet-icon" id="gsheetStatusIcon">🔍</span>
+            <div class="gsheet-info">
+              <strong id="gsheetStatusHeading">Checking Google Sheet Tab...</strong>
+              <div id="gsheetTitle" class="gsheet-title">Open a Google Sheet to read directly</div>
+            </div>
+          </div>
+          <button id="readGsheetBtn" class="action-btn full-width" disabled>📥 Read Current Google Sheet Data</button>
+        </div>
+
+        <!-- Choice Dividers -->
+        <div class="input-choice-divider"><span>OR CHOOSE LOCAL FILE / PASTE</span></div>
+
+        <!-- Drag & Drop File Zone -->
+        <div class="file-dropzone" id="dropZone">
+          <span class="drop-icon">📁</span>
+          <p id="dropText">Click or Drag & Drop a <strong>.CSV</strong> file here</p>
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+        </div>
+
+        <!-- Paste from Sheet Collapsible -->
+        <details class="paste-collapsible">
+          <summary>📋 Or Paste Cells Copied from Google Sheet (Ctrl+V)</summary>
+          <div class="paste-inner">
+            <p class="hint">In Google Sheet: select cells, press <code>Ctrl+C</code>, and paste below:</p>
+            <textarea id="pasteSheetInput" rows="3" placeholder="Paste cells or TSV/CSV data here..."></textarea>
+            <button id="loadPastedBtn" class="secondary-btn" style="margin-bottom: 4px;">Load Pasted Data</button>
+          </div>
+        </details>
+
+        <!-- Cleaning Options -->
+        <div class="options-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="optTrimSpaces" checked>
+            <span>Trim whitespace across all text columns</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="optFixDates" checked>
+            <span>Standardize dates to Salesforce ISO (<code>YYYY-MM-DD</code>)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="optConvertIds" checked>
+            <span>Auto-convert any 15-char Salesforce ID columns to 18-char</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="optDropDupes">
+            <span>Deduplicate exact matching rows</span>
+          </label>
+        </div>
+
+        <button id="cleanCsvBtn" class="primary-btn" disabled>Clean & Correct Data (Python Pandas)</button>
+
+        <!-- Audit & Correction Results -->
+        <div id="csvAuditResults" class="results-box hidden">
+          <h4>Data Quality & Correction Audit</h4>
+          <div id="auditMetricsGrid" class="metrics-grid"></div>
+
+          <div id="cleaningSummary" class="audit-summary"></div>
+
+          <!-- Correction Write-back Actions -->
+          <div class="correction-actions">
+            <button id="copyForGsheetBtn" class="copy-sheet-btn">
+              📋 Copy Corrected Data (Paste into A1)
+            </button>
+            <button id="addNewSheetBtn" class="add-sheet-btn">
+              ➕ Add New Sheet Tab into Spreadsheet
+            </button>
+            <button id="downloadCsvBtn" class="success-btn">
+              ⬇️ Download Cleaned CSV
+            </button>
+          </div>
+
+          <div class="preview-header-bar">
+            <div class="preview-title-wrap">
+              <h5 class="preview-title">Cleaned Data Preview</h5>
+              <span id="previewShapeTag" class="shape-badge"></span>
+            </div>
+            <button id="openFullscreenModalBtn" class="expand-preview-btn" title="Open Fullscreen Modal Preview like Salesforce">
+              ⤢ Fullscreen Preview
+            </button>
+          </div>
+          <div id="csvPreviewTableContainer" class="table-scroll"></div>
+        </div>
+      </section>
+
+      <!-- 3. Numerical Stats & Page Scrape -->
+      <section id="statsTab" class="tab-pane">
+        <label for="numbersInput"><strong>NumPy Statistical Analysis:</strong></label>
+        <p class="hint">Enter comma-separated numbers:</p>
+        <textarea id="numbersInput" rows="2" placeholder="e.g. 10.5, 23.4, 56.1, 88.0, 42.7, 19.3, 77.2"></textarea>
+        <button id="calcStatsBtn" class="primary-btn">Calculate Stats (NumPy)</button>
+
+        <div id="statsResults" class="results-box hidden">
+          <h4>Statistical Metrics</h4>
+          <div id="statsGrid" class="metrics-grid"></div>
+        </div>
+
+        <hr class="divider">
+
+        <label><strong>Webpage Scraper:</strong></label>
+        <p class="hint">Extract visible numbers or prices from current tab:</p>
+        <button id="scrapePageBtn" class="secondary-btn">Extract & Profile Page Numbers</button>
+        <div id="scrapeResults" class="results-box hidden">
+          <h4>Page Summary</h4>
+          <div id="scrapeMetrics" class="metrics-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Powered by <strong>Pyodide CPython WebAssembly</strong></span>
+    </footer>
+  </div>
+
+  <!-- Hidden Sandboxed Frame -->
+  <iframe id="pyodideFrame" src="../pyodide/sandbox.html" style="display: none;"></iframe>
+
+  <!-- Salesforce-Style Fullscreen Modal Dialog -->
+  <div id="fullscreenModal" class="slds-modal hidden">
+    <div class="slds-modal-backdrop" id="modalBackdrop"></div>
+    <div class="slds-modal-container">
+      <header class="slds-modal-header">
+        <div class="slds-modal-title-wrap">
+          <span class="slds-icon">⚡</span>
+          <div>
+            <h3 id="modalTitle">Data Preview</h3>
+            <p id="modalSubtitle" class="slds-modal-subtitle">Processed by Pandas WebAssembly</p>
+          </div>
+        </div>
+        <div class="slds-modal-header-actions">
+          <button id="modalNewTabBtn" class="mini-btn" title="Open in Full Chrome Tab">↗ Open in Full Tab</button>
+          <button id="closeModalBtn" class="slds-close-btn" title="Close Preview (Esc)">✕</button>
+        </div>
+      </header>
+
+      <!-- Search & Filter Toolbar -->
+      <div class="slds-modal-toolbar">
+        <input type="text" id="modalSearchInput" placeholder="🔍 Search / Filter rows..." class="modal-search-input">
+        <span id="modalRowCountTag" class="modal-count-badge">0 rows</span>
+      </div>
+
+      <!-- Scrollable Large Table Body -->
+      <div class="slds-modal-body">
+        <div id="modalTableContainer" class="modal-table-scroll"></div>
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="slds-modal-footer">
+        <div class="slds-footer-left">
+          <button id="modalCopyBtn" class="action-btn">📋 Copy Cleaned Data</button>
+          <button id="modalDownloadBtn" class="success-btn" style="width: auto; padding: 7px 12px; margin: 0;">⬇️ Download CSV</button>
+        </div>
+        <button id="modalCloseFooterBtn" class="secondary-btn" style="width: auto; padding: 7px 14px; margin: 0;">Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+name: Build & Validate Chrome Extension
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate manifest.json format
+        run: |
+          python -c "
+          import json
+          with open('extension/manifest.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+          assert data.get('manifest_version') == 3, 'Manifest version must be 3'
+          assert data.get('name'), 'Name is required'
+          assert data.get('version'), 'Version is required'
+          print(f'✓ Manifest valid: {data[\"name\"]} v{data[\"version\"]}')
+          "
+
+      - name: Bundle Extension Package
+        run: python scripts/bundle_extension.py
+
+      - name: Verify Package Archive
+        run: |
+          python -c "
+          import zipfile, os
+          zip_path = 'dist/python-in-browser-analytics.zip'
+          assert os.path.exists(zip_path), 'Archive was not generated'
+          with zipfile.ZipFile(zip_path, 'r') as zf:
+              namelist = zf.namelist()
+              assert 'manifest.json' in namelist, 'manifest.json missing from zip'
+              assert 'popup/popup.html' in namelist, 'popup.html missing from zip'
+              assert 'pyodide/sandbox.html' in namelist, 'sandbox.html missing from zip'
+              print(f'✓ Archive verified successfully ({len(namelist)} files packaged)')
+          "
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-package
+          path: dist/python-in-browser-analytics.zip
+          retention-days: 14

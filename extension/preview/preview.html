@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salesforce & Sheet Studio - Fullscreen Data Viewer</title>
+  <link rel="stylesheet" href="../popup/popup.css">
+  <style>
+    body {
+      width: 100% !important;
+      min-height: 100vh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background-color: #0b0f19 !important;
+    }
+    .fullscreen-page {
+      padding: 24px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-title h1 {
+      font-size: 20px;
+      margin: 0;
+      color: #fff;
+    }
+    .page-title p {
+      margin: 4px 0 0 0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .viewer-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .search-box {
+      flex: 1;
+      max-width: 400px;
+      padding: 10px 14px;
+      background: #1a202c;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+    }
+    .search-box:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .fullscreen-table-container {
+      max-height: calc(100vh - 220px);
+      overflow: auto;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background: #12161f;
+    }
+    table.viewer-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table.viewer-table th, table.viewer-table td {
+      padding: 10px 14px;
+      border: 1px solid #1e293b;
+      text-align: left;
+    }
+    table.viewer-table th {
+      background: #1e2533;
+      color: #c7d2fe;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    table.viewer-table tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    table.viewer-table tr:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .row-index {
+      color: #64748b;
+      font-size: 11px;
+      width: 40px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="fullscreen-page">
+    <header class="page-header">
+      <div class="page-title">
+        <span style="font-size: 28px;">⚡</span>
+        <div>
+          <h1 id="viewerTitle">Cleaned Data Viewer</h1>
+          <p id="viewerSubtitle">Processed by Pyodide WebAssembly (Pandas)</p>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button id="viewerCopyBtn" class="action-btn">📋 Copy All (TSV)</button>
+        <button id="viewerDownloadBtn" class="success-btn" style="width: auto; padding: 8px 14px; margin: 0;">⬇️ Download CSV</button>
+      </div>
+    </header>
+
+    <div class="viewer-toolbar">
+      <input type="text" id="viewerSearchInput" placeholder="🔍 Search or filter any column value..." class="search-box">
+      <span id="viewerRowCount" class="shape-badge" style="font-size: 12px; padding: 6px 12px;">Loading data...</span>
+    </div>
+
+    <div class="fullscreen-table-container">
+      <div id="viewerTableContainer"></div>
+    </div>
+  </div>
+
+  <script src="preview.js"></script>
+</body>
+</html>
