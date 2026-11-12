@@ -130,25 +130,72 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handle messages from Pyodide Sandbox frame
+  // Connect to persistent warm offscreen Pyodide engine
+  async function connectToPyodideEngine() {
+    try {
+      // 1. Check if the offscreen document is already warm
+      const res = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ target: "offscreen", action: "GET_STATUS" }, (r) => {
+          if (chrome.runtime.lastError || !r) {
+            resolve(null);
+          } else {
+            resolve(r);
+          }
+        });
+      });
+
+      if (res && res.ready) {
+        // Already warm and ready in memory! Instant open!
+        pyodideReady = true;
+        setEngineIndicator("online", "Python Wasm (Warm in Memory)");
+        setButtonsState(true);
+        if (loadingOverlay) loadingOverlay.classList.add("loaded");
+        return;
+      }
+
+      // If not yet running, ensure background creates the offscreen document
+      chrome.runtime.sendMessage({ action: "ENSURE_OFFSCREEN" }).catch(() => {});
+
+      if (res && res.status) {
+        setEngineIndicator("loading", res.status.message || "Starting Python Wasm...");
+        if (spinnerTextTitle) spinnerTextTitle.textContent = res.status.message || "Starting Python Wasm...";
+      }
+    } catch (e) {
+      console.warn("Could not query offscreen engine:", e);
+    }
+  }
+
+  connectToPyodideEngine();
+
+  // Listen for broadcast status updates from offscreen document
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.target === "popup" && msg.type === "pyodide_status") {
+      if (msg.status === "ready") {
+        pyodideReady = true;
+        setEngineIndicator("online", "Python Wasm (Warm in Memory)");
+        setButtonsState(true);
+        if (loadingOverlay) loadingOverlay.classList.add("loaded");
+      } else if (msg.status === "loading") {
+        setEngineIndicator("loading", msg.message || "Initializing Python Wasm...");
+        if (spinnerTextTitle) spinnerTextTitle.textContent = msg.message || "Initializing Python Wasm...";
+      } else if (msg.status === "error") {
+        setEngineIndicator("offline", "Python Error");
+        if (spinnerTextTitle) spinnerTextTitle.textContent = "Initialization Error";
+        if (spinnerSubtext) spinnerSubtext.textContent = msg.error || "Failed to load Python Wasm.";
+      }
+    }
+  });
+
+  // Handle fallback messages if local frame is ever used
   window.addEventListener("message", (event) => {
     const data = event.data;
     if (!data || data.source !== "PYODIDE_SANDBOX") return;
 
-    if (data.status === "loading") {
-      setEngineIndicator("loading", data.message || "Initializing Python Wasm...");
-      if (spinnerTextTitle) spinnerTextTitle.textContent = data.message || "Initializing Python Wasm...";
-      if (spinnerSubtext) spinnerSubtext.textContent = "Compiling CPython, NumPy & Pandas in browser memory";
-    } else if (data.status === "ready") {
+    if (data.status === "ready") {
       pyodideReady = true;
       setEngineIndicator("online", "Python Wasm Ready");
       setButtonsState(true);
       if (loadingOverlay) loadingOverlay.classList.add("loaded");
-    } else if (data.status === "error") {
-      setEngineIndicator("offline", "Python Error");
-      console.error("Pyodide Sandbox Error:", data.error);
-      if (spinnerTextTitle) spinnerTextTitle.textContent = "Initialization Error";
-      if (spinnerSubtext) spinnerSubtext.textContent = data.error || "Failed to load Python Wasm.";
     } else if (data.id && pyodidePendingCallbacks.has(data.id)) {
       const cb = pyodidePendingCallbacks.get(data.id);
       pyodidePendingCallbacks.delete(data.id);
@@ -156,7 +203,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  function sendPyodide(action, payload = {}) {
+  async function sendPyodide(action, payload = {}) {
+    // 1. Fast path: execute in persistent warm offscreen document
+    try {
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          { target: "offscreen", action: "EXECUTE", method: action, payload },
+          (res) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else if (!res) {
+              reject(new Error("No response from persistent engine"));
+            } else if (!res.success) {
+              reject(new Error(res.error || "Execution failed"));
+            } else {
+              resolve(res.result);
+            }
+          }
+        );
+      });
+      return response;
+    } catch (offscreenErr) {
+      console.warn("Offscreen engine execution failed, attempting local fallback:", offscreenErr);
+    }
+
+    // 2. Fallback path: local iframe if offscreen document is somehow unavailable
+    if (pyodideFrame && !pyodideFrame.src) {
+      pyodideFrame.src = "../pyodide/sandbox.html";
+    }
+
     return new Promise((resolve, reject) => {
       const id = ++messageCounter;
       pyodidePendingCallbacks.set(id, (res) => {

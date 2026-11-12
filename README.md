@@ -45,6 +45,9 @@ podman-python/
 │   │   ├── icon16.png
 │   │   ├── icon48.png
 │   │   └── icon128.png
+│   ├── offscreen/                     # Persistent background Wasm host (instant-load engine)
+│   │   ├── offscreen.html
+│   │   └── offscreen.js
 │   ├── popup/                         # Main extension popup interface
 │   │   ├── popup.html                 # UI structure with Salesforce-style modal & tabs
 │   │   ├── popup.css                  # Dark-mode styling, responsive tables & modal
