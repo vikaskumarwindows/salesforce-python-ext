@@ -102,15 +102,69 @@ def py_clean_csv(csv_text, options=None):
                 df[col] = df[col].apply(lambda x: convert_single_sf_id(str(x)) if pd.notnull(x) and len(str(x).strip()) == 15 else x)
                 audit["sf_ids_converted_cols"].append(col)
 
-    # 3. Standardize Date columns to Salesforce / ISO format (YYYY-MM-DD)
+    # 3. Standardize Date columns & Resolve Ambiguous Dates (e.g. 02/11/2026)
     if fix_dates:
+        target_fmt = options.get("target_date_format", "YYYY-MM-DD")
+        day_first_opt = bool(options.get("day_first", True))
+
+        fmt_code_map = {
+            "YYYY-MM-DD": "%Y-%m-%d",
+            "DD/MM/YYYY": "%d/%m/%Y",
+            "MM/DD/YYYY": "%m/%d/%Y",
+            "DD-MMM-YYYY": "%d-%b-%Y",
+            "YYYY/MM/DD": "%Y/%m/%d",
+            "MM-DD-YYYY": "%m-%d-%Y",
+            "DD.MM.YYYY": "%d.%m.%Y",
+            "YYYY-MM-DD HH:MM:SS": "%Y-%m-%d %H:%M:%S",
+        }
+        fmt_code = fmt_code_map.get(target_fmt, "%Y-%m-%d")
+
+        def is_date_column(series, col_name):
+            col_lower = str(col_name).lower()
+            date_keywords = ['date', 'time', 'created', 'closed', 'birth', 'due', 'expiry', 'expir', 'updated', 'hired', 'joined', 'effective', 'period', 'schedule', 'timestamp', 'dob', 'day']
+            if any(k in col_lower for k in date_keywords):
+                return True
+            sample = series.dropna().astype(str).str.strip().tolist()
+            sample = [s for s in sample if s and s.lower() not in ['nan', 'none', 'null', 'na', '']][:20]
+            if not sample:
+                return False
+            date_matches = 0
+            for s in sample:
+                if re.match(r'^\\d+(\\.\\d+)?$', s):
+                    continue
+                if re.search(r'\\b\\d{1,4}[/.-]\\d{1,2}[/.-]\\d{1,4}\\b', s) or re.search(r'\\b[A-Za-z]{3,9}\\b', s):
+                    try:
+                        if re.match(r'^\\d{4}[-/]', s):
+                            pd.to_datetime(s, format='ISO8601')
+                        else:
+                            pd.to_datetime(s, dayfirst=day_first_opt)
+                        date_matches += 1
+                    except Exception:
+                        pass
+            return date_matches >= max(2, int(len(sample) * 0.4))
+
+        def format_date_cell(val):
+            if pd.isnull(val):
+                return val
+            s = str(val).strip()
+            if not s or s.lower() in ['nan', 'none', 'null', 'na', '']:
+                return val
+            if re.match(r'^\\d+(\\.\\d+)?$', s):
+                return val
+            try:
+                if re.match(r'^\\d{4}[-/]', s):
+                    dt = pd.to_datetime(s, format='ISO8601')
+                else:
+                    dt = pd.to_datetime(s, dayfirst=day_first_opt)
+                return dt.strftime(fmt_code)
+            except Exception:
+                return val
+
         for col in df.columns:
-            is_date_col = any(keyword in col.lower() for keyword in ['date', 'time', 'created', 'closed', 'birth', 'due'])
-            if is_date_col:
+            if is_date_column(df[col], col):
                 try:
-                    df[col] = pd.to_datetime(df[col], errors='coerce').dt.strftime('%Y-%m-%d')
-                    df[col] = df[col].fillna('')
-                    audit["dates_standardized_cols"].append(col)
+                    df[col] = df[col].apply(format_date_cell)
+                    audit["dates_standardized_cols"].append(f"{col} ({target_fmt})")
                 except Exception:
                     pass
 

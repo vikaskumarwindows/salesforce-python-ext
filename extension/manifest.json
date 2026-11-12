@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Salesforce & Google Sheet Studio (In-Browser Python)",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Salesforce 15-to-18 ID fixer, smart CSV & Google Sheet cleanser running 100% in-browser via Pyodide WebAssembly.",
   "permissions": [
     "tabs",

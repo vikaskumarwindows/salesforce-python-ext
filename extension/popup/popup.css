@@ -459,6 +459,48 @@ button.secondary-btn:hover {
   accent-color: var(--accent);
 }
 
+.date-format-settings {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 4px 0 8px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.settings-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: #fff;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  flex: 1;
+  max-width: 220px;
+}
+
+.settings-select:focus {
+  border-color: var(--accent);
+}
+
 .correction-actions {
   display: flex;
   flex-direction: column;

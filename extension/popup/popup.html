@@ -124,8 +124,30 @@
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="optFixDates" checked>
-            <span>Standardize dates to Salesforce ISO (<code>YYYY-MM-DD</code>)</span>
+            <span>Standardize & resolve dates</span>
           </label>
+          <div id="dateFormatSettings" class="date-format-settings">
+            <div class="settings-row">
+              <label for="targetDateFormat" class="settings-label">Target Format:</label>
+              <select id="targetDateFormat" class="settings-select">
+                <option value="YYYY-MM-DD" selected>YYYY-MM-DD (Salesforce / ISO)</option>
+                <option value="DD/MM/YYYY">DD/MM/YYYY (UK / EU / India)</option>
+                <option value="MM/DD/YYYY">MM/DD/YYYY (US Standard)</option>
+                <option value="DD-MMM-YYYY">DD-MMM-YYYY (e.g. 02-Nov-2026)</option>
+                <option value="YYYY/MM/DD">YYYY/MM/DD (Slash ISO)</option>
+                <option value="MM-DD-YYYY">MM-DD-YYYY (US Dash)</option>
+                <option value="DD.MM.YYYY">DD.MM.YYYY (European Dot)</option>
+                <option value="YYYY-MM-DD HH:MM:SS">YYYY-MM-DD HH:MM:SS (DateTime)</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <label for="dateAmbiguityMode" class="settings-label">Resolve 02/11/2026 as:</label>
+              <select id="dateAmbiguityMode" class="settings-select">
+                <option value="day_first" selected>Day First (02 Nov 2026)</option>
+                <option value="month_first">Month First (11 Feb 2026)</option>
+              </select>
+            </div>
+          </div>
           <label class="checkbox-label">
             <input type="checkbox" id="optConvertIds" checked>
             <span>Auto-convert any 15-char Salesforce ID columns to 18-char</span>

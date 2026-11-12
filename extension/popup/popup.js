@@ -41,6 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const optTrimSpaces = document.getElementById("optTrimSpaces");
   const optFixDates = document.getElementById("optFixDates");
+  const dateFormatSettings = document.getElementById("dateFormatSettings");
+  const targetDateFormat = document.getElementById("targetDateFormat");
+  const dateAmbiguityMode = document.getElementById("dateAmbiguityMode");
   const optConvertIds = document.getElementById("optConvertIds");
   const optDropDupes = document.getElementById("optDropDupes");
   const cleanCsvBtn = document.getElementById("cleanCsvBtn");
@@ -407,6 +410,12 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.readAsText(file);
   }
 
+  if (optFixDates && dateFormatSettings) {
+    optFixDates.addEventListener("change", () => {
+      dateFormatSettings.style.display = optFixDates.checked ? "flex" : "none";
+    });
+  }
+
   cleanCsvBtn.addEventListener("click", async () => {
     if (!loadedCsvText) return;
 
@@ -416,6 +425,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const options = {
       trim_whitespace: optTrimSpaces.checked,
       standardize_dates: optFixDates.checked,
+      target_date_format: targetDateFormat ? targetDateFormat.value : "YYYY-MM-DD",
+      day_first: dateAmbiguityMode ? dateAmbiguityMode.value === "day_first" : true,
       convert_sf_ids: optConvertIds.checked,
       drop_duplicates: optDropDupes.checked,
     };
@@ -465,8 +476,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (audit.sf_ids_converted_cols.length > 0) {
       summaryParts.push(`✓ Converted 15-to-18 char IDs in: <strong>${audit.sf_ids_converted_cols.join(", ")}</strong>`);
     }
-    if (audit.dates_standardized_cols.length > 0) {
-      summaryParts.push(`✓ Standardized dates to YYYY-MM-DD in: <strong>${audit.dates_standardized_cols.join(", ")}</strong>`);
+    if (audit.dates_standardized_cols && audit.dates_standardized_cols.length > 0) {
+      summaryParts.push(`✓ Standardized dates in: <strong>${audit.dates_standardized_cols.join(", ")}</strong>`);
     }
     if (audit.whitespace_trimmed_cols.length > 0) {
       summaryParts.push(`✓ Trimmed whitespace on: ${audit.whitespace_trimmed_cols.length} text columns`);
