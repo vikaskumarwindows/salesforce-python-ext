@@ -160,7 +160,7 @@ def py_clean_csv(csv_text, options=None):
         def format_date_cell(val, day_first):
             if pd.isnull(val):
                 return val
-            s = str(val).strip().strip('"\'')
+            s = str(val).strip().strip('"').strip("'")
             if not s or s.lower() in ['nan', 'none', 'null', 'na', '']:
                 return val
             if re.match(r'^\\d+(\\.\\d+)?$', s):
