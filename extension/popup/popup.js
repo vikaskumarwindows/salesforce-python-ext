@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const optConvertIds = document.getElementById("optConvertIds");
   const optDropDupes = document.getElementById("optDropDupes");
   const cleanCsvBtn = document.getElementById("cleanCsvBtn");
+  const headerLogo = document.getElementById("headerLogo");
   const csvAuditResults = document.getElementById("csvAuditResults");
   const auditMetricsGrid = document.getElementById("auditMetricsGrid");
   const cleaningSummary = document.getElementById("cleaningSummary");
@@ -149,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
         pyodideReady = true;
         setEngineIndicator("online", "Python Wasm (Warm in Memory)");
         setButtonsState(true);
+        updateLogoState(true);
         if (loadingOverlay) loadingOverlay.classList.add("loaded");
         return;
       }
@@ -165,6 +167,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function updateLogoState(isReady) {
+    if (headerLogo) {
+      if (isReady) {
+        headerLogo.classList.add("green-ready");
+      } else {
+        headerLogo.classList.remove("green-ready");
+      }
+    }
+
+    if (chrome.action && chrome.action.setIcon) {
+      if (isReady) {
+        chrome.action.setIcon({
+          path: {
+            "16": "../icons/icon16_green.png",
+            "48": "../icons/icon48_green.png",
+            "128": "../icons/icon128_green.png"
+          }
+        }).catch(() => {});
+        chrome.action.setBadgeBackgroundColor({ color: "#10b981" }).catch(() => {});
+        chrome.action.setBadgeText({ text: "✓" }).catch(() => {});
+      } else {
+        chrome.action.setIcon({
+          path: {
+            "16": "../icons/icon16.png",
+            "48": "../icons/icon48.png",
+            "128": "../icons/icon128.png"
+          }
+        }).catch(() => {});
+        chrome.action.setBadgeBackgroundColor({ color: "#6366f1" }).catch(() => {});
+        chrome.action.setBadgeText({ text: "..." }).catch(() => {});
+      }
+    }
+  }
+
   connectToPyodideEngine();
 
   // Listen for broadcast status updates from offscreen document
@@ -174,6 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
         pyodideReady = true;
         setEngineIndicator("online", "Python Wasm (Warm in Memory)");
         setButtonsState(true);
+        updateLogoState(true);
         if (loadingOverlay) loadingOverlay.classList.add("loaded");
       } else if (msg.status === "loading") {
         setEngineIndicator("loading", msg.message || "Initializing Python Wasm...");
@@ -195,6 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       pyodideReady = true;
       setEngineIndicator("online", "Python Wasm Ready");
       setButtonsState(true);
+      updateLogoState(true);
       if (loadingOverlay) loadingOverlay.classList.add("loaded");
     } else if (data.id && pyodidePendingCallbacks.has(data.id)) {
       const cb = pyodidePendingCallbacks.get(data.id);

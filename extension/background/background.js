@@ -46,6 +46,20 @@ async function setupOffscreenDocument() {
   }
 }
 
+function setActionIconGreen() {
+  if (chrome.action && chrome.action.setIcon) {
+    chrome.action.setIcon({
+      path: {
+        "16": "icons/icon16_green.png",
+        "48": "icons/icon48_green.png",
+        "128": "icons/icon128_green.png"
+      }
+    }).catch(() => {});
+    chrome.action.setBadgeBackgroundColor({ color: "#10b981" }).catch(() => {});
+    chrome.action.setBadgeText({ text: "✓" }).catch(() => {});
+  }
+}
+
 // Pre-warm engine immediately on install and browser startup
 chrome.runtime.onInstalled.addListener(() => {
   setupOffscreenDocument();
@@ -58,8 +72,11 @@ chrome.runtime.onStartup.addListener(() => {
 // Also trigger pre-warm when service worker wakes up
 setupOffscreenDocument();
 
-// Listen for popup requests to ensure engine is running
+// Listen for status events and popup requests
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "pyodide_status" && request.status === "ready") {
+    setActionIconGreen();
+  }
   if (request.action === "ENSURE_OFFSCREEN") {
     setupOffscreenDocument()
       .then(() => sendResponse({ success: true }))

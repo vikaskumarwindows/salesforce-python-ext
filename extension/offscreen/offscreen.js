@@ -29,7 +29,19 @@ window.addEventListener("message", (event) => {
         readyResolver(true);
         readyResolver = null;
       }
+      if (chrome.action && chrome.action.setIcon) {
+        chrome.action.setIcon({
+          path: {
+            "16": "../icons/icon16_green.png",
+            "48": "../icons/icon48_green.png",
+            "128": "../icons/icon128_green.png"
+          }
+        }).catch(() => {});
+        chrome.action.setBadgeBackgroundColor({ color: "#10b981" }).catch(() => {});
+        chrome.action.setBadgeText({ text: "✓" }).catch(() => {});
+      }
       chrome.runtime.sendMessage({ target: "popup", type: "pyodide_status", status: "ready" }).catch(() => {});
+      chrome.runtime.sendMessage({ type: "pyodide_status", status: "ready" }).catch(() => {});
     } else {
       chrome.runtime.sendMessage({ target: "popup", type: "pyodide_status", ...data }).catch(() => {});
     }
