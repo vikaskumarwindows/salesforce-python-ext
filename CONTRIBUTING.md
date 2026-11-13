@@ -14,7 +14,7 @@ Thank you for your interest in contributing to **Salesforce & Google Sheet Studi
 ### Cloning the Repository
 ```bash
 git clone <repository-url>
-cdsalesforce-python-ext
+cd salesforce-python-ext
 ```
 
 ### Loading Extension into Chrome
